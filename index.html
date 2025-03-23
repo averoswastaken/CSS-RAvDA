@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS Renk Analiz ve Düzenleme Aracı</title>
+    <style>
+        :root {
+            --primary: #4a6baf;
+            --secondary: #37474f;
+            --background: #f5f5f5;
+            --text: #333333;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .upload-section {
+            border: 2px dashed #ccc;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            background-color: #fafafa;
+        }
+        
+        .upload-section.dragover {
+            background-color: #e3f2fd;
+            border-color: var(--primary);
+        }
+        
+        .upload-section p {
+            margin-bottom: 15px;
+            color: #666;
+        }
+        
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #3a5995;
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .color-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .color-item {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        
+        .color-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .color-preview {
+            height: 100px;
+            width: 100%;
+        }
+        
+        .color-details {
+            padding: 15px;
+        }
+        
+        .color-code {
+            font-family: monospace;
+            font-size: 14px;
+            margin-bottom: 10px;
+            background-color: #f8f8f8;
+            padding: 5px 8px;
+            border-radius: 3px;
+            border: 1px solid #eee;
+            display: inline-block;
+        }
+        
+        .color-location {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .color-editor {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .color-input {
+            width: 50px;
+            height: 30px;
+            padding: 0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .alpha-input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        .message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .save-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+            background-color: #f8f8f8;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-color: #ddd;
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .code-viewer {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            overflow-x: auto;
+            white-space: pre;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .color-list {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSS Renk Analiz ve Düzenleme Aracı</h1>
+        <p>❤ Averos</p>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="upload">Dosya Yükle</div>
+            <div class="tab" data-tab="colors" id="colors-tab">Renkler</div>
+            <div class="tab" data-tab="code" id="code-tab">Kod Görünümü</div>
+        </div>
+        
+        <div class="tab-content active" id="upload-tab">
+            <div class="upload-section" id="drop-area">
+                <p>CSS dosyanızı sürükleyin veya seçin</p>
+                <input type="file" id="file-input" accept=".css" style="display: none;">
+                <button class="btn" id="select-file">Dosya Seç</button>
+            </div>
+            <div id="upload-message" class="message hidden"></div>
+        </div>
+        
+        <div class="tab-content" id="colors-tab-content">
+            <div id="colors-container" class="color-list"></div>
+            <div class="save-container">
+                <button class="btn" id="save-changes">Değişiklikleri Kaydet</button>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="code-tab-content">
+            <div class="code-viewer" id="code-viewer"></div>
+            <div class="save-container">
+                <button class="btn" id="download-css">CSS Dosyasını İndir</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('file-input');
+            const selectFileBtn = document.getElementById('select-file');
+            const dropArea = document.getElementById('drop-area');
+            const uploadMessage = document.getElementById('upload-message');
+            const colorsContainer = document.getElementById('colors-container');
+            const saveChangesBtn = document.getElementById('save-changes');
+            const downloadCssBtn = document.getElementById('download-css');
+            const codeViewer = document.getElementById('code-viewer');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const colorsTab = document.getElementById('colors-tab');
+            const codeTab = document.getElementById('code-tab');
+            
+            let cssContent = '';
+            let colorInfos = [];
+            let modified = false;
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.getAttribute('data-tab');
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    document.getElementById(`${tabName}-tab${tabName === 'upload' ? '' : '-content'}`).classList.add('active');
+                });
+            });
+            
+            selectFileBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, () => {
+                    dropArea.classList.add('dragover');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, () => {
+                    dropArea.classList.remove('dragover');
+                }, false);
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    handleFiles(files);
+                }
+            }, false);
+            
+            saveChangesBtn.addEventListener('click', saveChanges);
+            downloadCssBtn.addEventListener('click', downloadCssFile);
+            
+            function handleFileSelect(e) {
+                const files = e.target.files;
+                handleFiles(files);
+            }
+            
+            function handleFiles(files) {
+                if (files.length === 0) return;
+                
+                const file = files[0];
+                
+                if (file.type !== 'text/css' && !file.name.endsWith('.css')) {
+                    showMessage('Lütfen geçerli bir CSS dosyası yükleyin.', 'error');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    cssContent = e.target.result;
+                    processCSS(cssContent);
+                    showMessage('CSS dosyası başarıyla yüklendi!', 'success');
+                    
+                    colorsTab.click();
+                    
+                    codeViewer.textContent = cssContent;
+                };
+                
+                reader.onerror = function() {
+                    showMessage('Dosya okuma hatası!', 'error');
+                };
+                
+                reader.readAsText(file);
+            }
+            
+            function processCSS(css) {
+                const hexRegex = /#([0-9a-fA-F]{3,8})\b/g;
+                const rgbRegex = /rgba?\((\d+,\s*\d+,\s*\d+(?:,\s*(?:0?\.)?\d+)?)\)/g;
+                const hslRegex = /hsla?\((\d+,\s*\d+%,\s*\d+%(?:,\s*(?:0?\.)?\d+)?)\)/g;
+                
+                colorInfos = [];
+                let match;
+                let lineNumber = 1;
+                let currentPos = 0;
+                
+                const lines = css.split('\n');
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    
+                    while ((match = hexRegex.exec(line)) !== null) {
+                        const colorValue = match[0];
+                        const position = { line: i + 1, column: match.index + 1 };
+                        const colorInfo = {
+                            value: colorValue,
+                            position: position,
+                            type: 'hex',
+                            originalValue: colorValue
+                        };
+                        
+                        if (!colorInfos.some(ci => ci.value === colorValue && ci.position.line === position.line && ci.position.column === position.column)) {
+                            colorInfos.push(colorInfo);
+                        }
+                    }
+                    
+                    while ((match = rgbRegex.exec(line)) !== null) {
+                        const colorValue = match[0];
+                        const position = { line: i + 1, column: match.index + 1 };
+                        const colorInfo = {
+                            value: colorValue,
+                            position: position,
+                            type: 'rgb',
+                            originalValue: colorValue
+                        };
+                        
+                        if (!colorInfos.some(ci => ci.value === colorValue && ci.position.line === position.line && ci.position.column === position.column)) {
+                            colorInfos.push(colorInfo);
+                        }
+                    }
+                    
+                    while ((match = hslRegex.exec(line)) !== null) {
+                        const colorValue = match[0];
+                        const position = { line: i + 1, column: match.index + 1 };
+                        const colorInfo = {
+                            value: colorValue,
+                            position: position,
+                            type: 'hsl',
+                            originalValue: colorValue
+                        };
+                        
+                        if (!colorInfos.some(ci => ci.value === colorValue && ci.position.line === position.line && ci.position.column === position.column)) {
+                            colorInfos.push(colorInfo);
+                        }
+                    }
+                }
+                
+                displayColorInfos();
+            }
+            
+            function displayColorInfos() {
+                colorsContainer.innerHTML = '';
+                
+                if (colorInfos.length === 0) {
+                    colorsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; padding: 20px;">Hiçbir renk bulunamadı. Başka bir CSS dosyası deneyin.</p>';
+                    return;
+                }
+                
+                colorInfos.forEach((colorInfo, index) => {
+                    const colorItem = document.createElement('div');
+                    colorItem.className = 'color-item';
+                    
+                    const colorPreview = document.createElement('div');
+                    colorPreview.className = 'color-preview';
+                    colorPreview.style.backgroundColor = colorInfo.value;
+                    
+                    const colorDetails = document.createElement('div');
+                    colorDetails.className = 'color-details';
+                    
+                    const colorCode = document.createElement('div');
+                    colorCode.className = 'color-code';
+                    colorCode.textContent = colorInfo.value;
+                    
+                    const colorLocation = document.createElement('div');
+                    colorLocation.className = 'color-location';
+                    colorLocation.textContent = `Satır: ${colorInfo.position.line}, Sütun: ${colorInfo.position.column}`;
+                    
+                    const colorEditor = document.createElement('div');
+                    colorEditor.className = 'color-editor';
+                    
+                    const colorInput = document.createElement('input');
+                    colorInput.className = 'color-input';
+                    colorInput.type = 'color';
+                    colorInput.value = rgbaToHex(colorInfo.value);
+                    
+                    let alphaInput = null;
+                    
+                    if (colorInfo.value.includes('rgba') || colorInfo.value.includes('hsla')) {
+                        const alpha = getAlphaValue(colorInfo.value);
+                        alphaInput = document.createElement('input');
+                        alphaInput.className = 'alpha-input';
+                        alphaInput.type = 'number';
+                        alphaInput.min = '0';
+                        alphaInput.max = '1';
+                        alphaInput.step = '0.1';
+                        alphaInput.value = alpha;
+                        alphaInput.placeholder = 'Saydamlık';
+                        
+                        alphaInput.addEventListener('change', function() {
+                            const newAlpha = parseFloat(this.value);
+                            if (isNaN(newAlpha) || newAlpha < 0 || newAlpha > 1) return;
+                            
+                            let newValue;
+                            if (colorInfo.type === 'rgb') {
+                                const rgbValues = getRgbValues(colorInfo.value);
+                                newValue = `rgba(${rgbValues.r}, ${rgbValues.g}, ${rgbValues.b}, ${newAlpha})`;
+                            } else if (colorInfo.type === 'hsl') {
+                                const hslValues = getHslValues(colorInfo.value);
+                                newValue = `hsla(${hslValues.h}, ${hslValues.s}%, ${hslValues.l}%, ${newAlpha})`;
+                            }
+                            
+                            if (newValue) {
+                                colorInfo.value = newValue;
+                                colorPreview.style.backgroundColor = newValue;
+                                colorCode.textContent = newValue;
+                                modified = true;
+                            }
+                        });
+                    }
+                    
+                    colorInput.addEventListener('change', function() {
+                        const newColor = this.value;
+                        let newValue;
+                        
+                        if (colorInfo.type === 'hex') {
+                            newValue = newColor;
+                        } else if (colorInfo.type === 'rgb') {
+                            const rgb = hexToRgb(newColor);
+                            const alpha = alphaInput ? parseFloat(alphaInput.value) : 1;
+                            newValue = alpha < 1 ? 
+                                `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})` : 
+                                `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+                        } else if (colorInfo.type === 'hsl') {
+                            const rgb = hexToRgb(newColor);
+                            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+                            const alpha = alphaInput ? parseFloat(alphaInput.value) : 1;
+                            newValue = alpha < 1 ? 
+                                `hsla(${hsl.h}, ${hsl.s}%, ${hsl.l}%, ${alpha})` : 
+                                `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+                        }
+                        
+                        colorInfo.value = newValue;
+                        colorPreview.style.backgroundColor = newValue;
+                        colorCode.textContent = newValue;
+                        modified = true;
+                    });
+                    
+                    colorEditor.appendChild(colorInput);
+                    if (alphaInput) {
+                        colorEditor.appendChild(alphaInput);
+                    }
+                    
+                    colorDetails.appendChild(colorCode);
+                    colorDetails.appendChild(colorLocation);
+                    colorDetails.appendChild(colorEditor);
+                    
+                    colorItem.appendChild(colorPreview);
+                    colorItem.appendChild(colorDetails);
+                    
+                    colorsContainer.appendChild(colorItem);
+                });
+            }
+            
+            function saveChanges() {
+                if (!modified || colorInfos.length === 0) {
+                    showMessage('Değiştirilecek renk yok veya hiçbir değişiklik yapılmadı.', 'error');
+                    return;
+                }
+                
+                let lines = cssContent.split('\n');
+                
+                colorInfos.sort((a, b) => {
+                    if (a.position.line !== b.position.line) {
+                        return b.position.line - a.position.line;
+                    }
+                    return b.position.column - a.position.column;
+                }).forEach(colorInfo => {
+                    if (colorInfo.value !== colorInfo.originalValue) {
+                        const lineIndex = colorInfo.position.line - 1;
+                        const line = lines[lineIndex];
+                        const startPos = colorInfo.position.column - 1;
+                        const endPos = startPos + colorInfo.originalValue.length;
+                        
+                        lines[lineIndex] = line.substring(0, startPos) + colorInfo.value + line.substring(endPos);
+                        colorInfo.originalValue = colorInfo.value;
+                    }
+                });
+                
+                cssContent = lines.join('\n');
+                
+                codeViewer.textContent = cssContent;
+                
+                showMessage('Değişiklikler başarıyla kaydedildi!', 'success');
+                modified = false;
+                
+                codeTab.click();
+            }
+            
+            function downloadCssFile() {
+                if (!cssContent) {
+                    showMessage('İndirilecek CSS içeriği bulunamadı.', 'error');
+                    return;
+                }
+                
+                const blob = new Blob([cssContent], { type: 'text/css' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'updated-styles.css';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showMessage('CSS dosyası başarıyla indirildi!', 'success');
+            }
+            
+            function showMessage(message, type) {
+                uploadMessage.textContent = message;
+                uploadMessage.className = `message ${type}`;
+                uploadMessage.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    uploadMessage.classList.add('hidden');
+                }, 3000);
+            }
+            
+            function rgbaToHex(rgba) {
+                if (rgba.startsWith('#')) return rgba;
+                
+                let rgb;
+                let opacity = 1;
+                
+                if (rgba.startsWith('rgba')) {
+                    const parts = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)/);
+                    if (!parts) return '#000000';
+                    
+                    rgb = {
+                        r: parseInt(parts[1], 10),
+                        g: parseInt(parts[2], 10),
+                        b: parseInt(parts[3], 10)
+                    };
+                    opacity = parseFloat(parts[4]);
+                } else if (rgba.startsWith('rgb')) {
+                    const parts = rgba.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                    if (!parts) return '#000000';
+                    
+                    rgb = {
+                        r: parseInt(parts[1], 10),
+                        g: parseInt(parts[2], 10),
+                        b: parseInt(parts[3], 10)
+                    };
+                } else if (rgba.startsWith('hsl') || rgba.startsWith('hsla')) {
+                    let h, s, l, a = 1;
+                    
+                    if (rgba.startsWith('hsla')) {
+                        const parts = rgba.match(/hsla\((\d+),\s*(\d+)%,\s*(\d+)%,\s*([0-9.]+)\)/);
+                        if (!parts) return '#000000';
+                        
+                        h = parseInt(parts[1], 10);
+                        s = parseInt(parts[2], 10) / 100;
+                        l = parseInt(parts[3], 10) / 100;
+                        a = parseFloat(parts[4]);
+                    } else {
+                        const parts = rgba.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                        if (!parts) return '#000000';
+                        
+                        h = parseInt(parts[1], 10);
+                        s = parseInt(parts[2], 10) / 100;
+                        l = parseInt(parts[3], 10) / 100;
+                    }
+                    
+                    rgb = hslToRgb(h, s, l);
+                    opacity = a;
+                } else {
+                    return '#000000';
+                }
+                
+                return `#${componentToHex(rgb.r)}${componentToHex(rgb.g)}${componentToHex(rgb.b)}`;
+            }
+            
+            function componentToHex(c) {
+                const hex = c.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }
+            
+            function hexToRgb(hex) {
+                let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : { r: 0, g: 0, b: 0 };
+            }
+            
+            function getAlphaValue(color) {
+                if (color.startsWith('rgba') || color.startsWith('hsla')) {
+                    const match = color.match(/[rgba|hsla]\(.*,\s*([0-9.]+)\)/);
+                    return match ? parseFloat(match[1]) : 1;
+                }
+                return 1;
+            }
+            
+            function getRgbValues(color) {
+                const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/);
+                if (!match) return { r: 0, g: 0, b: 0 };
+                
+                return {
+                    r: parseInt(match[1], 10),
+                    g: parseInt(match[2], 10),
+                    b: parseInt(match[3], 10)
+                };
+            }
+            
+            function getHslValues(color) {
+                const match = color.match(/hsla?\((\d+),\s*(\d+)%,\s*(\d+)%(?:,\s*([0-9.]+))?\)/);
+                if (!match) return { h: 0, s: 0, l: 0 };
+                
+                return {
+                    h: parseInt(match[1], 10),
+                    s: parseInt(match[2], 10),
+                    l: parseInt(match[3], 10)
+                };
+            }
+            
+            function hslToRgb(h, s, l) {
+                let r, g, b;
+                
+                if (s === 0) {
+                    r = g = b = l;
+                } else {
+                    const hue2rgb = (p, q, t) => {
+                        if (t < 0) t += 1;
+                        if (t > 1) t -= 1;
+                        if (t < 1/6) return p + (q - p) * 6 * t;
+                        if (t < 1/2) return q;
+                        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                        return p;
+                    };
+                    
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    const p = 2 * l - q;
+                    
+                    r = hue2rgb(p, q, (h / 360) + 1/3);
+                    g = hue2rgb(p, q, h / 360);
+                    b = hue2rgb(p, q, (h / 360) - 1/3);
+                }
+                
+                return {
+                    r: Math.round(r * 255),
+                    g: Math.round(g * 255),
+                    b: Math.round(b * 255)
+                };
+            }
+            
+            function rgbToHsl(r, g, b) {
+                r /= 255;
+                g /= 255;
+                b /= 255;
+                
+                const max = Math.max(r, g, b);
+                const min = Math.min(r, g, b);
+                let h, s, l = (max + min) / 2;
+                
+                if (max === min) {
+                    h = s = 0;
+                } else {
+                    const d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    
+                    h *= 60;
+                }
+                
+                return {
+                    h: Math.round(h),
+                    s: Math.round(s * 100),
+                    l: Math.round(l * 100)
+                };
+            }
+        });
+    </script>
+</body>
+</html>
