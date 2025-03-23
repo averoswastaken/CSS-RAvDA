@@ -21,6 +21,6 @@ Bu proje, CSS dosyalarındaki renkleri analiz eden ve düzenlemenize olanak tan�
 
 3️⃣ Renkleri değiştirin, önizleyin ve güncellenmiş CSS dosyanızı indirin.
 
-## 🔗 Canlı Demo: [Buraya tıkla!](https://averoswastaken.github.io/css-ravda)
+## 🔗 Canlı Demo: [Buraya tıkla!](https://averoswastaken.github.io/CSS-RAvDA)
 
 📌 Lisans: [MIT Lisans](https://github.com/averoswastaken/CSS-RAvDA/blob/main/LICENSE)
