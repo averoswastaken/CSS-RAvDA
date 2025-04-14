@@ -124,19 +124,7 @@
         .color-location {
             font-size: 13px;
             color: #666;
-            margin: 10px 0;
-            max-height: 100px;
-            overflow-y: auto;
-            padding: 5px;
-            border: 1px solid #eee;
-            border-radius: 3px;
-            background-color: #fafafa;
-        }
-        
-        .color-locations strong {
-            color: #444;
-            display: block;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
         
         .color-editor {
@@ -384,51 +372,62 @@
                 const hslRegex = /hsla?\((\d+,\s*\d+%,\s*\d+%(?:,\s*(?:0?\.)?\d+)?)\)/g;
                 
                 colorInfos = [];
-                let colorGroups = {};
+                let match;
+                let lineNumber = 1;
+                let currentPos = 0;
                 
                 const lines = css.split('\n');
                 
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i];
                     
-                    const processMatch = (match, regex, type) => {
+                    while ((match = hexRegex.exec(line)) !== null) {
                         const colorValue = match[0];
                         const position = { line: i + 1, column: match.index + 1 };
+                        const colorInfo = {
+                            value: colorValue,
+                            position: position,
+                            type: 'hex',
+                            originalValue: colorValue
+                        };
                         
-                        const normalizedColor = type === 'hex' ? colorValue.toLowerCase() :
-                            type === 'rgb' ? normalizeRgb(colorValue) :
-                            type === 'hsl' ? normalizeHsl(colorValue) : colorValue;
-                        
-                        if (!colorGroups[normalizedColor]) {
-                            colorGroups[normalizedColor] = {
-                                value: colorValue,
-                                type: type,
-                                positions: [],
-                                originalValue: colorValue
-                            };
+                        if (!colorInfos.some(ci => ci.value === colorValue && ci.position.line === position.line && ci.position.column === position.column)) {
+                            colorInfos.push(colorInfo);
                         }
-                        
-                        colorGroups[normalizedColor].positions.push(position);
-                    };
+                    }
                     
-                    let match;
-                    while ((match = hexRegex.exec(line)) !== null) processMatch(match, hexRegex, 'hex');
-                    while ((match = rgbRegex.exec(line)) !== null) processMatch(match, rgbRegex, 'rgb');
-                    while ((match = hslRegex.exec(line)) !== null) processMatch(match, hslRegex, 'hsl');
+                    while ((match = rgbRegex.exec(line)) !== null) {
+                        const colorValue = match[0];
+                        const position = { line: i + 1, column: match.index + 1 };
+                        const colorInfo = {
+                            value: colorValue,
+                            position: position,
+                            type: 'rgb',
+                            originalValue: colorValue
+                        };
+                        
+                        if (!colorInfos.some(ci => ci.value === colorValue && ci.position.line === position.line && ci.position.column === position.column)) {
+                            colorInfos.push(colorInfo);
+                        }
+                    }
+                    
+                    while ((match = hslRegex.exec(line)) !== null) {
+                        const colorValue = match[0];
+                        const position = { line: i + 1, column: match.index + 1 };
+                        const colorInfo = {
+                            value: colorValue,
+                            position: position,
+                            type: 'hsl',
+                            originalValue: colorValue
+                        };
+                        
+                        if (!colorInfos.some(ci => ci.value === colorValue && ci.position.line === position.line && ci.position.column === position.column)) {
+                            colorInfos.push(colorInfo);
+                        }
+                    }
                 }
                 
-                colorInfos = Object.values(colorGroups);
                 displayColorInfos();
-            }
-            
-            function normalizeRgb(color) {
-                const values = color.match(/\d+(\.\d+)?/g);
-                return values ? values.join(',') : color;
-            }
-            
-            function normalizeHsl(color) {
-                const values = color.match(/\d+(\.\d+)?/g);
-                return values ? values.join(',') : color;
             }
             
             function displayColorInfos() {
@@ -454,12 +453,9 @@
                     colorCode.className = 'color-code';
                     colorCode.textContent = colorInfo.value;
                     
-                    const locationsList = document.createElement('div');
-                    locationsList.className = 'color-locations';
-                    locationsList.innerHTML = `<strong>Kullanıldığı Yerler (${colorInfo.positions.length}):</strong><br>`;
-                    colorInfo.positions.forEach(pos => {
-                        locationsList.innerHTML += `Satır: ${pos.line}, Sütun: ${pos.column}<br>`;
-                    });
+                    const colorLocation = document.createElement('div');
+                    colorLocation.className = 'color-location';
+                    colorLocation.textContent = `Satır: ${colorInfo.position.line}, Sütun: ${colorInfo.position.column}`;
                     
                     const colorEditor = document.createElement('div');
                     colorEditor.className = 'color-editor';
@@ -470,6 +466,7 @@
                     colorInput.value = rgbaToHex(colorInfo.value);
                     
                     let alphaInput = null;
+                    
                     if (colorInfo.value.includes('rgba') || colorInfo.value.includes('hsla')) {
                         const alpha = getAlphaValue(colorInfo.value);
                         alphaInput = document.createElement('input');
@@ -536,7 +533,7 @@
                     }
                     
                     colorDetails.appendChild(colorCode);
-                    colorDetails.appendChild(locationsList);
+                    colorDetails.appendChild(colorLocation);
                     colorDetails.appendChild(colorEditor);
                     
                     colorItem.appendChild(colorPreview);
@@ -548,30 +545,37 @@
             
             function saveChanges() {
                 if (!modified || colorInfos.length === 0) {
-                    showMessage('Değişiklik yapılmadı veya renk bulunamadı.', 'error');
+                    showMessage('Değiştirilecek renk yok veya hiçbir değişiklik yapılmadı.', 'error');
                     return;
                 }
                 
-                let updatedCssContent = cssContent;
-                colorInfos.forEach(colorInfo => {
+                let lines = cssContent.split('\n');
+                
+                colorInfos.sort((a, b) => {
+                    if (a.position.line !== b.position.line) {
+                        return b.position.line - a.position.line;
+                    }
+                    return b.position.column - a.position.column;
+                }).forEach(colorInfo => {
                     if (colorInfo.value !== colorInfo.originalValue) {
-                        const positions = colorInfo.positions.slice().sort((a, b) => b.line - a.line);
-                        const lines = updatedCssContent.split('\n');
+                        const lineIndex = colorInfo.position.line - 1;
+                        const line = lines[lineIndex];
+                        const startPos = colorInfo.position.column - 1;
+                        const endPos = startPos + colorInfo.originalValue.length;
                         
-                        positions.forEach(pos => {
-                            const line = lines[pos.line - 1];
-                            const updatedLine = line.replace(colorInfo.originalValue, colorInfo.value);
-                            lines[pos.line - 1] = updatedLine;
-                        });
-                        
-                        updatedCssContent = lines.join('\n');
+                        lines[lineIndex] = line.substring(0, startPos) + colorInfo.value + line.substring(endPos);
+                        colorInfo.originalValue = colorInfo.value;
                     }
                 });
                 
-                cssContent = updatedCssContent;
+                cssContent = lines.join('\n');
+                
                 codeViewer.textContent = cssContent;
+                
                 showMessage('Değişiklikler başarıyla kaydedildi!', 'success');
                 modified = false;
+                
+                codeTab.click();
             }
             
             function downloadCssFile() {
@@ -589,7 +593,177 @@
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
+                
                 showMessage('CSS dosyası başarıyla indirildi!', 'success');
+            }
+            
+            function showMessage(message, type) {
+                uploadMessage.textContent = message;
+                uploadMessage.className = `message ${type}`;
+                uploadMessage.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    uploadMessage.classList.add('hidden');
+                }, 3000);
+            }
+            
+            function rgbaToHex(rgba) {
+                if (rgba.startsWith('#')) return rgba;
+                
+                let rgb;
+                let opacity = 1;
+                
+                if (rgba.startsWith('rgba')) {
+                    const parts = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)/);
+                    if (!parts) return '#000000';
+                    
+                    rgb = {
+                        r: parseInt(parts[1], 10),
+                        g: parseInt(parts[2], 10),
+                        b: parseInt(parts[3], 10)
+                    };
+                    opacity = parseFloat(parts[4]);
+                } else if (rgba.startsWith('rgb')) {
+                    const parts = rgba.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+                    if (!parts) return '#000000';
+                    
+                    rgb = {
+                        r: parseInt(parts[1], 10),
+                        g: parseInt(parts[2], 10),
+                        b: parseInt(parts[3], 10)
+                    };
+                } else if (rgba.startsWith('hsl') || rgba.startsWith('hsla')) {
+                    let h, s, l, a = 1;
+                    
+                    if (rgba.startsWith('hsla')) {
+                        const parts = rgba.match(/hsla\((\d+),\s*(\d+)%,\s*(\d+)%,\s*([0-9.]+)\)/);
+                        if (!parts) return '#000000';
+                        
+                        h = parseInt(parts[1], 10);
+                        s = parseInt(parts[2], 10) / 100;
+                        l = parseInt(parts[3], 10) / 100;
+                        a = parseFloat(parts[4]);
+                    } else {
+                        const parts = rgba.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                        if (!parts) return '#000000';
+                        
+                        h = parseInt(parts[1], 10);
+                        s = parseInt(parts[2], 10) / 100;
+                        l = parseInt(parts[3], 10) / 100;
+                    }
+                    
+                    rgb = hslToRgb(h, s, l);
+                    opacity = a;
+                } else {
+                    return '#000000';
+                }
+                
+                return `#${componentToHex(rgb.r)}${componentToHex(rgb.g)}${componentToHex(rgb.b)}`;
+            }
+            
+            function componentToHex(c) {
+                const hex = c.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }
+            
+            function hexToRgb(hex) {
+                let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16),
+                    g: parseInt(result[2], 16),
+                    b: parseInt(result[3], 16)
+                } : { r: 0, g: 0, b: 0 };
+            }
+            
+            function getAlphaValue(color) {
+                if (color.startsWith('rgba') || color.startsWith('hsla')) {
+                    const match = color.match(/[rgba|hsla]\(.*,\s*([0-9.]+)\)/);
+                    return match ? parseFloat(match[1]) : 1;
+                }
+                return 1;
+            }
+            
+            function getRgbValues(color) {
+                const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\)/);
+                if (!match) return { r: 0, g: 0, b: 0 };
+                
+                return {
+                    r: parseInt(match[1], 10),
+                    g: parseInt(match[2], 10),
+                    b: parseInt(match[3], 10)
+                };
+            }
+            
+            function getHslValues(color) {
+                const match = color.match(/hsla?\((\d+),\s*(\d+)%,\s*(\d+)%(?:,\s*([0-9.]+))?\)/);
+                if (!match) return { h: 0, s: 0, l: 0 };
+                
+                return {
+                    h: parseInt(match[1], 10),
+                    s: parseInt(match[2], 10),
+                    l: parseInt(match[3], 10)
+                };
+            }
+            
+            function hslToRgb(h, s, l) {
+                let r, g, b;
+                
+                if (s === 0) {
+                    r = g = b = l;
+                } else {
+                    const hue2rgb = (p, q, t) => {
+                        if (t < 0) t += 1;
+                        if (t > 1) t -= 1;
+                        if (t < 1/6) return p + (q - p) * 6 * t;
+                        if (t < 1/2) return q;
+                        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                        return p;
+                    };
+                    
+                    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                    const p = 2 * l - q;
+                    
+                    r = hue2rgb(p, q, (h / 360) + 1/3);
+                    g = hue2rgb(p, q, h / 360);
+                    b = hue2rgb(p, q, (h / 360) - 1/3);
+                }
+                
+                return {
+                    r: Math.round(r * 255),
+                    g: Math.round(g * 255),
+                    b: Math.round(b * 255)
+                };
+            }
+            
+            function rgbToHsl(r, g, b) {
+                r /= 255;
+                g /= 255;
+                b /= 255;
+                
+                const max = Math.max(r, g, b);
+                const min = Math.min(r, g, b);
+                let h, s, l = (max + min) / 2;
+                
+                if (max === min) {
+                    h = s = 0;
+                } else {
+                    const d = max - min;
+                    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                    
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    
+                    h *= 60;
+                }
+                
+                return {
+                    h: Math.round(h),
+                    s: Math.round(s * 100),
+                    l: Math.round(l * 100)
+                };
             }
         });
     </script>
